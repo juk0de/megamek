@@ -855,3 +855,17 @@ class MtfFile:
             raise Exception('Unsupported tech base: "Mixed" is no longer allowed by itself. You must specify "Mixed (IS Chassis)" or "Mixed (Clan Chassis)".')
         else:
             raise Exception(f"Unsupported tech base: {tech_base}")
+    def parse_no_crit_equipment(self, mech, name):
+        loc = Mech.LOC_NONE
+        split_index = name.find(":")
+        if split_index > 0:
+            loc = mech.get_location_from_abbr(name[split_index + 1:])
+            name = name[:split_index]
+        eq = EquipmentType.get(name)
+        if eq is not None:
+            try:
+                mech.add_equipment(eq, loc)
+            except LocationFullException as ex:
+                raise Exception(ex)
+        else:
+            mech.add_failed_equipment(name)
