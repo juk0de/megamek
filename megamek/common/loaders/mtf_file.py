@@ -330,7 +330,9 @@ class MtfFile:
         return False
 
     def weapons_list(self, line):
-        pass
+        if line.lower().startswith(self.WEAPONS):
+            return int(line[len(self.WEAPONS):])
+        return -1
 
     def get_armor_location(self, line):
         pass

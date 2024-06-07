@@ -1295,10 +1295,4 @@ public class MtfFile implements IMechLoader {
         }
     }
 
-    private int weaponsList(String line) {
-        if (line.toLowerCase().startsWith(WEAPONS)) {
-            return Integer.parseInt(line.substring(WEAPONS.length()));
-        }
-        return -1;
-    }
 }
