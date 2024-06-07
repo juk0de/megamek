@@ -378,58 +378,187 @@ class MtfFile:
                     loc = pos + len(self.location_order)
                     break
         return loc
-    def set_tech_level(self, mech):
-        tech_base = self.tech_base[9:].strip()
-        rules_level = int(self.rules_level[12:].strip())
-        if tech_base.lower() == "inner sphere":
-            if rules_level == 1:
-                mech.set_tech_level(TechConstants.T_INTRO_BOXSET)
-            elif rules_level == 2:
-                mech.set_tech_level(TechConstants.T_IS_TW_NON_BOX)
-            elif rules_level == 3:
-                mech.set_tech_level(TechConstants.T_IS_ADVANCED)
-            elif rules_level == 4:
-                mech.set_tech_level(TechConstants.T_IS_EXPERIMENTAL)
-            elif rules_level == 5:
-                mech.set_tech_level(TechConstants.T_IS_UNOFFICIAL)
-            else:
-                raise Exception(f"Unsupported tech level: {rules_level}")
-        elif tech_base.lower() == "clan":
-            if rules_level == 2:
-                mech.set_tech_level(TechConstants.T_CLAN_TW)
-            elif rules_level == 3:
-                mech.set_tech_level(TechConstants.T_CLAN_ADVANCED)
-            elif rules_level == 4:
-                mech.set_tech_level(TechConstants.T_CLAN_EXPERIMENTAL)
-            elif rules_level == 5:
-                mech.set_tech_level(TechConstants.T_CLAN_UNOFFICIAL)
-            else:
-                raise Exception(f"Unsupported tech level: {rules_level}")
-        elif tech_base.lower() == "mixed (is chassis)":
-            if rules_level == 2:
-                mech.set_tech_level(TechConstants.T_IS_TW_NON_BOX)
-            elif rules_level == 3:
-                mech.set_tech_level(TechConstants.T_IS_ADVANCED)
-            elif rules_level == 4:
-                mech.set_tech_level(TechConstants.T_IS_EXPERIMENTAL)
-            elif rules_level == 5:
-                mech.set_tech_level(TechConstants.T_IS_UNOFFICIAL)
-            else:
-                raise Exception(f"Unsupported tech level: {rules_level}")
-            mech.set_mixed_tech(True)
-        elif tech_base.lower() == "mixed (clan chassis)":
-            if rules_level == 2:
-                mech.set_tech_level(TechConstants.T_CLAN_TW)
-            elif rules_level == 3:
-                mech.set_tech_level(TechConstants.T_CLAN_ADVANCED)
-            elif rules_level == 4:
-                mech.set_tech_level(TechConstants.T_CLAN_EXPERIMENTAL)
-            elif rules_level == 5:
-                mech.set_tech_level(TechConstants.T_CLAN_UNOFFICIAL)
-            else:
-                raise Exception(f"Unsupported tech level: {rules_level}")
-            mech.set_mixed_tech(True)
-        elif tech_base.lower() == "mixed":
-            raise Exception("Unsupported tech base: \"Mixed\" is no longer allowed by itself.  You must specify \"Mixed (IS Chassis)\" or \"Mixed (Clan Chassis)\".")
-        else:
-            raise Exception(f"Unsupported tech base: {tech_base}")
+    def parse_crits(self, mech, loc):
+        if not isinstance(mech, QuadMech):
+            if loc in [Mech.LOC_LARM, Mech.LOC_RARM]:
+                to_check = self.crit_data[loc][3].upper().strip()
+                if to_check.endswith(self.ARMORED):
+                    to_check = to_check[:-len(self.ARMORED)].strip()
+                if to_check != "HAND ACTUATOR":
+                    mech.set_critical(loc, 3, None)
+                to_check = self.crit_data[loc][2].upper().strip()
+                if to_check.endswith(self.ARMORED):
+                    to_check = to_check[:-len(self.ARMORED)].strip()
+                if to_check != "LOWER ARM ACTUATOR":
+                    mech.set_critical(loc, 2, None)
+
+        for i in range(mech.get_number_of_criticals(loc)):
+            crit_name = self.crit_data[loc][i].strip()
+            crit_name_upper = crit_name.upper()
+            rear_mounted = False
+            is_armored = False
+            is_turreted = False
+            is_omni_pod = False
+            size = 0.0
+
+            if crit_name_upper.endswith(self.ARMORED):
+                crit_name = crit_name[:-len(self.ARMORED)].strip()
+                is_armored = True
+                crit_name_upper = crit_name.upper()
+
+            if crit_name in ["FUSION ENGINE", "ENGINE"]:
+                mech.set_critical(loc, i, CriticalSlot(CriticalSlot.TYPE_SYSTEM, Mech.SYSTEM_ENGINE, True, is_armored))
+                continue
+            elif crit_name == "LIFE SUPPORT":
+                mech.set_critical(loc, i, CriticalSlot(CriticalSlot.TYPE_SYSTEM, Mech.SYSTEM_LIFE_SUPPORT, True, is_armored))
+                continue
+            elif crit_name == "SENSORS":
+                mech.set_critical(loc, i, CriticalSlot(CriticalSlot.TYPE_SYSTEM, Mech.SYSTEM_SENSORS, True, is_armored))
+                continue
+            elif crit_name == "COCKPIT":
+                mech.set_critical(loc, i, CriticalSlot(CriticalSlot.TYPE_SYSTEM, Mech.SYSTEM_COCKPIT, True, is_armored))
+                continue
+            elif crit_name == "GYRO":
+                mech.set_critical(loc, i, CriticalSlot(CriticalSlot.TYPE_SYSTEM, Mech.SYSTEM_GYRO, True, is_armored))
+                continue
+            elif crit_name in ["HAND ACTUATOR", "LOWER ARM ACTUATOR", "SHOULDER", "HIP"]:
+                mech.get_critical(loc, i).set_armored(is_armored)
+                continue
+            elif crit_name == "LANDING GEAR":
+                mech.set_critical(loc, i, CriticalSlot(CriticalSlot.TYPE_SYSTEM, LandAirMech.LAM_LANDING_GEAR, True, is_armored))
+                continue
+            elif crit_name == "AVIONICS":
+                mech.set_critical(loc, i, CriticalSlot(CriticalSlot.TYPE_SYSTEM, LandAirMech.LAM_AVIONICS, True, is_armored))
+                continue
+
+            if mech.get_critical(loc, i) is not None:
+                continue
+
+            size_index = crit_name_upper.find(self.SIZE)
+            if size_index > 0:
+                size = float(crit_name[size_index + len(self.SIZE):])
+                crit_name_upper = crit_name_upper[:size_index]
+
+            if crit_name_upper.endswith(self.OMNIPOD):
+                crit_name_upper = crit_name_upper[:-len(self.OMNIPOD)].strip()
+                is_omni_pod = True
+
+            if crit_name_upper.endswith("(T)"):
+                is_turreted = True
+                crit_name_upper = crit_name_upper[:-3].strip()
+
+            if crit_name_upper.endswith("(R)"):
+                rear_mounted = True
+                crit_name_upper = crit_name_upper[:-3].strip()
+
+            if crit_name_upper.endswith("(SPLIT)"):
+                crit_name_upper = crit_name_upper[:-7].strip()
+
+            facing = -1
+            if crit_name_upper.endswith("(FL)"):
+                facing = 5
+                crit_name_upper = crit_name_upper[:-4].strip()
+            elif crit_name_upper.endswith("(FR)"):
+                facing = 1
+                crit_name_upper = crit_name_upper[:-4].strip()
+            elif crit_name_upper.endswith("(RL)"):
+                facing = 4
+                crit_name_upper = crit_name_upper[:-4].strip()
+            elif crit_name_upper.endswith("(RR)"):
+                facing = 2
+                crit_name_upper = crit_name_upper[:-4].strip()
+
+            crit_name = crit_name[:len(crit_name_upper)]
+            etype2 = None
+            if "|" in crit_name:
+                crit_name2 = crit_name.split("|")[1]
+                etype2 = EquipmentType.get(crit_name2)
+                if etype2 is None:
+                    etype2 = EquipmentType.get("Clan " + crit_name2 if mech.is_clan() else "IS " + crit_name2)
+                crit_name = crit_name.split("|")[0]
+
+            try:
+                etype = EquipmentType.get(crit_name)
+                if etype is None:
+                    etype = EquipmentType.get("Clan " + crit_name if mech.is_clan() else "IS " + crit_name)
+                if etype is not None:
+                    if etype.is_spreadable():
+                        m = self.h_shared_equip.get(etype)
+                        if m is not None:
+                            mech.add_critical(loc, CriticalSlot(m))
+                            continue
+                        m = mech.add_equipment(etype, loc, rear_mounted, BattleArmor.MOUNT_LOC_NONE, is_armored, is_turreted)
+                        m.set_omni_pod_mounted(is_omni_pod)
+                        self.h_shared_equip[etype] = m
+                    elif isinstance(etype, MiscType) and etype.has_flag(MiscType.F_TARGCOMP):
+                        m = self.h_shared_equip.get(etype)
+                        if m is None:
+                            m = mech.add_targ_comp_without_slots(etype, loc, is_omni_pod, is_armored)
+                            self.h_shared_equip[etype] = m
+                        mech.add_critical(loc, CriticalSlot(m))
+                    elif (isinstance(etype, WeaponType) and etype.is_splitable()) or (isinstance(etype, MiscType) and etype.has_flag(MiscType.F_SPLITABLE)):
+                        m = None
+                        b_found = False
+                        for v_split_weapon in self.v_split_weapons:
+                            m = v_split_weapon
+                            n_loc = m.get_location()
+                            if ((n_loc == loc or loc == Mech.get_inner_location(n_loc)) or (n_loc == Mech.LOC_CT and loc == Mech.LOC_HEAD)) and m.get_type() == etype:
+                                b_found = True
+                                break
+                        if b_found:
+                            m.set_found_crits(m.get_found_crits() + (2 if mech.is_super_heavy() else 1))
+                            if m.get_found_crits() >= m.get_criticals():
+                                self.v_split_weapons.remove(m)
+                            if loc != m.get_location():
+                                m.set_split(True)
+                            help_loc = m.get_location()
+                            m.set_location(Mech.most_restrictive_loc(loc, help_loc))
+                            if loc != help_loc:
+                                m.set_second_location(Mech.least_restrictive_loc(loc, help_loc))
+                        else:
+                            m = Mounted.create_mounted(mech, etype)
+                            m.set_found_crits(1)
+                            m.set_armored(is_armored)
+                            m.set_mech_turret_mounted(is_turreted)
+                            self.v_split_weapons.append(m)
+                        m.set_armored(is_armored)
+                        m.set_mech_turret_mounted(is_turreted)
+                        m.set_omni_pod_mounted(is_omni_pod)
+                        mech.add_equipment(m, loc, rear_mounted)
+                    else:
+                        if etype2 is None:
+                            mount = mech.add_equipment(etype, loc, rear_mounted, BattleArmor.MOUNT_LOC_NONE, is_armored, is_turreted, False, False, is_omni_pod)
+                        else:
+                            if isinstance(etype, AmmoType):
+                                if not isinstance(etype2, AmmoType) or etype.get_ammo_type() != etype2.get_ammo_type():
+                                    raise Exception("Can't combine ammo for different weapons in one slot")
+                            else:
+                                if etype != etype2 or (isinstance(etype, MiscType) and not etype.has_flag(MiscType.F_HEAT_SINK) and not etype.has_flag(MiscType.F_DOUBLE_HEAT_SINK)):
+                                    raise Exception("must combine ammo or heatsinks in one slot")
+                            mount = mech.add_equipment(etype, etype2, loc, is_omni_pod, is_armored)
+                        if etype.is_variable_size():
+                            if size == 0.0:
+                                size = BLKFile.get_legacy_variable_size(crit_name)
+                            mount.set_size(size)
+                            crit_count = mount.get_criticals()
+                            if mech.is_super_heavy():
+                                crit_count = int(crit_count / 2.0)
+                            for c in range(1, crit_count):
+                                cs = CriticalSlot(mount)
+                                mech.add_critical(loc, cs, i + c)
+                        if isinstance(etype, WeaponType) and etype.has_flag(WeaponType.F_VGL):
+                            if facing == -1:
+                                if rear_mounted:
+                                    mount.set_facing(3)
+                                else:
+                                    mount.set_facing(0)
+                            else:
+                                mount.set_facing(facing)
+                else:
+                    if crit_name != self.EMPTY:
+                        mech.add_failed_equipment(crit_name)
+                        self.crit_data[loc][i] = self.EMPTY
+                        self.compact_criticals(mech, loc)
+                        i -= 1
+            except LocationFullException as ex:
+                raise Exception(ex)
