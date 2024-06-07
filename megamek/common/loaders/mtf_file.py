@@ -562,3 +562,240 @@ class MtfFile:
                         i -= 1
             except LocationFullException as ex:
                 raise Exception(ex)
+    def get_entity(self):
+        try:
+            mech = None
+
+            try:
+                i_gyro_type = Mech.get_gyro_type_for_string(self.gyro_type[5:])
+                if i_gyro_type == Mech.GYRO_UNKNOWN:
+                    i_gyro_type = Mech.GYRO_STANDARD
+            except Exception:
+                i_gyro_type = Mech.GYRO_STANDARD
+
+            try:
+                i_cockpit_type = Mech.get_cockpit_type_for_string(self.cockpit_type[8:])
+                if i_cockpit_type == Mech.COCKPIT_UNKNOWN:
+                    i_cockpit_type = Mech.COCKPIT_STANDARD
+            except Exception:
+                i_cockpit_type = Mech.COCKPIT_STANDARD
+
+            try:
+                full_head = self.ejection_type[9:] == Mech.FULL_HEAD_EJECT_STRING
+            except Exception:
+                full_head = False
+
+            if "QuadVee" in self.chassis_config:
+                try:
+                    i_motive_type = QuadVee.get_motive_type_for_string(self.motive_type[7:])
+                    if i_motive_type == QuadVee.MOTIVE_UNKNOWN:
+                        i_motive_type = QuadVee.MOTIVE_TRACK
+                except Exception:
+                    i_motive_type = QuadVee.MOTIVE_TRACK
+                mech = QuadVee(i_gyro_type, i_motive_type)
+            elif "Quad" in self.chassis_config:
+                mech = QuadMech(i_gyro_type, i_cockpit_type)
+            elif "LAM" in self.chassis_config:
+                try:
+                    i_lam_type = LandAirMech.get_lam_type_for_string(self.lam_type[4:])
+                    if i_lam_type == LandAirMech.LAM_UNKNOWN:
+                        i_lam_type = LandAirMech.LAM_STANDARD
+                except Exception:
+                    i_lam_type = LandAirMech.LAM_STANDARD
+                mech = LandAirMech(i_gyro_type, i_cockpit_type, i_lam_type)
+            elif "Tripod" in self.chassis_config:
+                mech = TripodMech(i_gyro_type, i_cockpit_type)
+            else:
+                mech = BipedMech(i_gyro_type, i_cockpit_type)
+
+            mech.set_full_head_eject(full_head)
+            mech.set_chassis(self.chassis.strip())
+            mech.set_clan_chassis_name(self.clan_chassis_name)
+            mech.set_model(self.model.strip())
+            mech.set_mul_id(self.mul_id)
+            mech.set_year(int(self.tech_year[4:].strip()))
+            mech.set_source(self.source[len("Source:"):].strip())
+            mech.set_unit_role(UnitRole.parse_role(self.role) if self.role else UnitRole.UNDETERMINED)
+
+            if "Omni" in self.chassis_config:
+                mech.set_omni(True)
+
+            self.set_tech_level(mech)
+            mech.set_weight(int(self.tonnage[5:]))
+
+            engine_flags = 0
+            if (mech.is_clan() and not mech.is_mixed_tech()) or (mech.is_mixed_tech() and mech.is_clan() and not mech.item_opposite_tech(self.engine)) or (mech.is_mixed_tech() and not mech.is_clan() and mech.item_opposite_tech(self.engine)):
+                engine_flags = Engine.CLAN_ENGINE
+            if mech.is_super_heavy():
+                engine_flags |= Engine.SUPERHEAVY_ENGINE
+
+            engine_rating = int(self.engine[self.engine.index(":") + 1:self.engine.index(" ")])
+            mech.set_engine(Engine(engine_rating, Engine.get_engine_type_by_string(self.engine), engine_flags))
+
+            mech.set_original_jump_mp(int(self.jump_mp[8:]))
+
+            dbl_sinks = self.heat_sinks.find(self.HS_DOUBLE) != -1
+            laser_sinks = self.heat_sinks.find(self.HS_LASER) != -1
+            compact_sinks = self.heat_sinks.find(self.HS_COMPACT) != -1
+            expected_sinks = int(self.heat_sinks[11:13].strip())
+            base_heat_sinks = int(self.base_chassie_heat_sinks[len("base chassis heat sinks:"):].strip())
+
+            heat_sink_base = ITechnology.TECH_BASE_ALL
+            if self.heat_sinks.find(self.TECH_BASE_CLAN) != -1:
+                heat_sink_base = ITechnology.TECH_BASE_CLAN
+            elif self.heat_sinks.find(self.TECH_BASE_IS) != -1:
+                heat_sink_base = ITechnology.TECH_BASE_IS
+
+            this_structure_type = self.internal_type[self.internal_type.index(":") + 1:]
+            if this_structure_type:
+                mech.set_structure_type(this_structure_type)
+            else:
+                mech.set_structure_type(EquipmentType.T_STRUCTURE_STANDARD)
+            mech.auto_set_internal()
+
+            this_armor_type = self.armor_type[self.armor_type.index(":") + 1:]
+            if "(" in this_armor_type:
+                clan = "clan" in this_armor_type.lower()
+                rules_level = int(self.rules_level[12:].strip())
+                if clan:
+                    if rules_level == 2:
+                        mech.set_armor_tech_level(TechConstants.T_CLAN_TW)
+                    elif rules_level == 3:
+                        mech.set_armor_tech_level(TechConstants.T_CLAN_ADVANCED)
+                    elif rules_level == 4:
+                        mech.set_armor_tech_level(TechConstants.T_CLAN_EXPERIMENTAL)
+                    elif rules_level == 5:
+                        mech.set_armor_tech_level(TechConstants.T_CLAN_UNOFFICIAL)
+                    else:
+                        raise Exception(f"Unsupported tech level: {rules_level}")
+                else:
+                    if rules_level == 1:
+                        mech.set_armor_tech_level(TechConstants.T_INTRO_BOXSET)
+                    elif rules_level == 2:
+                        mech.set_armor_tech_level(TechConstants.T_IS_TW_NON_BOX)
+                    elif rules_level == 3:
+                        mech.set_armor_tech_level(TechConstants.T_IS_ADVANCED)
+                    elif rules_level == 4:
+                        mech.set_armor_tech_level(TechConstants.T_IS_EXPERIMENTAL)
+                    elif rules_level == 5:
+                        mech.set_armor_tech_level(TechConstants.T_IS_UNOFFICIAL)
+                    else:
+                        raise Exception(f"Unsupported tech level: {rules_level}")
+                this_armor_type = this_armor_type[:this_armor_type.index("(")].strip()
+                mech.set_armor_type(this_armor_type)
+            elif this_armor_type != EquipmentType.get_armor_type_name(EquipmentType.T_ARMOR_PATCHWORK):
+                mech.set_armor_tech_level(mech.get_tech_level())
+                mech.set_armor_type(this_armor_type)
+
+            if not this_armor_type:
+                mech.set_armor_type(EquipmentType.T_ARMOR_STANDARD)
+            mech.recalculate_tech_advancement()
+
+            for x in range(len(self.location_order)):
+                if self.location_order[x] == Mech.LOC_CLEG and not isinstance(mech, TripodMech):
+                    continue
+                mech.initialize_armor(int(self.armor_values[x][self.armor_values[x].rindex(":") + 1:]), self.location_order[x])
+                if this_armor_type == EquipmentType.get_armor_type_name(EquipmentType.T_ARMOR_PATCHWORK):
+                    clan = "clan" in self.armor_values[x].lower()
+                    armor_name = self.armor_values[x][self.armor_values[x].index(":") + 1:self.armor_values[x].index("(")]
+                    if "Clan" not in armor_name and "IS" not in armor_name:
+                        armor_name = f"Clan {armor_name}" if clan else f"IS {armor_name}"
+                    mech.set_armor_type(EquipmentType.get_armor_type(EquipmentType.get(armor_name)), self.location_order[x])
+
+                    armor_value = self.armor_values[x].lower()
+                    rules_level = int(self.rules_level[12:].strip())
+                    if "clan" in armor_value:
+                        if rules_level == 2:
+                            mech.set_armor_tech_level(TechConstants.T_CLAN_TW, self.location_order[x])
+                        elif rules_level == 3:
+                            mech.set_armor_tech_level(TechConstants.T_CLAN_ADVANCED, self.location_order[x])
+                        elif rules_level == 4:
+                            mech.set_armor_tech_level(TechConstants.T_CLAN_EXPERIMENTAL, self.location_order[x])
+                        elif rules_level == 5:
+                            mech.set_armor_tech_level(TechConstants.T_CLAN_UNOFFICIAL, self.location_order[x])
+                        else:
+                            raise Exception(f"Unsupported tech level: {rules_level}")
+                    elif "inner sphere" in armor_value:
+                        if rules_level == 1:
+                            mech.set_armor_tech_level(TechConstants.T_INTRO_BOXSET, self.location_order[x])
+                        elif rules_level == 2:
+                            mech.set_armor_tech_level(TechConstants.T_IS_TW_NON_BOX, self.location_order[x])
+                        elif rules_level == 3:
+                            mech.set_armor_tech_level(TechConstants.T_IS_ADVANCED, self.location_order[x])
+                        elif rules_level == 4:
+                            mech.set_armor_tech_level(TechConstants.T_IS_EXPERIMENTAL, self.location_order[x])
+                        elif rules_level == 5:
+                            mech.set_armor_tech_level(TechConstants.T_IS_UNOFFICIAL, self.location_order[x])
+                        else:
+                            raise Exception(f"Unsupported tech level: {rules_level}")
+
+            for x in range(len(self.rear_location_order)):
+                mech.initialize_rear_armor(int(self.armor_values[x + len(self.location_order)][10:]), self.rear_location_order[x])
+
+            self.compact_criticals(mech)
+            for i in range(mech.locations() - 1, -1, -1):
+                self.parse_crits(mech, i)
+
+            for equipment in self.no_crit_equipment:
+                self.parse_no_crit_equipment(mech, equipment)
+
+            if isinstance(mech, LandAirMech):
+                mech.auto_set_cap_armor()
+                mech.auto_set_fatal_thresh()
+                fuel_tank_count = sum(1 for e in mech.get_equipment() if e.is(EquipmentTypeLookup.LAM_FUEL_TANK))
+                mech.set_fuel(80 * (1 + fuel_tank_count))
+
+            if laser_sinks:
+                mech.add_engine_sinks(expected_sinks - mech.heat_sinks(), MiscType.F_LASER_HEAT_SINK)
+            elif dbl_sinks:
+                if heat_sink_base == ITechnology.TECH_BASE_ALL:
+                    for mounted in mech.get_misc():
+                        if mounted.get_type().has_flag(MiscType.F_DOUBLE_HEAT_SINK):
+                            heat_sink_base = mounted.get_type().get_tech_base()
+                clan = heat_sink_base == ITechnology.TECH_BASE_CLAN if heat_sink_base != ITechnology.TECH_BASE_ALL else mech.is_clan()
+                mech.add_engine_sinks(expected_sinks - mech.heat_sinks(), MiscType.F_DOUBLE_HEAT_SINK, clan)
+            elif compact_sinks:
+                mech.add_engine_sinks(expected_sinks - mech.heat_sinks(), MiscType.F_COMPACT_HEAT_SINK)
+            else:
+                mech.add_engine_sinks(expected_sinks - mech.heat_sinks(), MiscType.F_HEAT_SINK)
+
+            if mech.is_omni() and mech.has_engine():
+                if base_heat_sinks >= 10:
+                    mech.get_engine().set_base_chassis_heat_sinks(base_heat_sinks)
+                else:
+                    mech.get_engine().set_base_chassis_heat_sinks(expected_sinks)
+
+            mech.get_fluff().set_capabilities(self.capabilities)
+            mech.get_fluff().set_overview(self.overview)
+            mech.get_fluff().set_deployment(self.deployment)
+            mech.get_fluff().set_history(self.history)
+            mech.get_fluff().set_manufacturer(self.manufacturer)
+            mech.get_fluff().set_primary_factory(self.primary_factory)
+            mech.get_fluff().set_notes(self.notes)
+            mech.get_fluff().set_fluff_image(self.fluff_image_encoded)
+            mech.set_icon(self.icon_encoded)
+            for k, v in self.system_manufacturers.items():
+                mech.get_fluff().set_system_manufacturer(k, v)
+            for k, v in self.system_models.items():
+                mech.get_fluff().set_system_model(k, v)
+
+            mech.set_armor_tonnage(mech.get_armor_weight())
+
+            if self.bv != 0:
+                mech.set_use_manual_bv(True)
+                mech.set_manual_bv(self.bv)
+
+            quirks = []
+            for quirk_line in self.quirk_lines:
+                if quirk_line.startswith(self.QUIRK):
+                    quirks.append(QuirkEntry(quirk_line[len(self.QUIRK):]))
+                elif quirk_line.startswith(self.WEAPON_QUIRK):
+                    fields = quirk_line[len(self.WEAPON_QUIRK):].split(":")
+                    slot = int(fields[2])
+                    quirks.append(QuirkEntry(fields[0], fields[1], slot, fields[3]))
+            mech.load_quirks(quirks)
+
+            return mech
+        except Exception as ex:
+            logging.error("", exc_info=ex)
+            raise Exception from ex
