@@ -799,3 +799,59 @@ class MtfFile:
         except Exception as ex:
             logging.error("", exc_info=ex)
             raise Exception from ex
+    def set_tech_level(self, mech):
+        tech_base = self.tech_base[9:].strip()
+        rules_level = int(self.rules_level[12:].strip())
+
+        if tech_base.lower() == "inner sphere":
+            if rules_level == 1:
+                mech.set_tech_level(TechConstants.T_INTRO_BOXSET)
+            elif rules_level == 2:
+                mech.set_tech_level(TechConstants.T_IS_TW_NON_BOX)
+            elif rules_level == 3:
+                mech.set_tech_level(TechConstants.T_IS_ADVANCED)
+            elif rules_level == 4:
+                mech.set_tech_level(TechConstants.T_IS_EXPERIMENTAL)
+            elif rules_level == 5:
+                mech.set_tech_level(TechConstants.T_IS_UNOFFICIAL)
+            else:
+                raise Exception(f"Unsupported tech level: {rules_level}")
+        elif tech_base.lower() == "clan":
+            if rules_level == 2:
+                mech.set_tech_level(TechConstants.T_CLAN_TW)
+            elif rules_level == 3:
+                mech.set_tech_level(TechConstants.T_CLAN_ADVANCED)
+            elif rules_level == 4:
+                mech.set_tech_level(TechConstants.T_CLAN_EXPERIMENTAL)
+            elif rules_level == 5:
+                mech.set_tech_level(TechConstants.T_CLAN_UNOFFICIAL)
+            else:
+                raise Exception(f"Unsupported tech level: {rules_level}")
+        elif tech_base.lower() == "mixed (is chassis)":
+            if rules_level == 2:
+                mech.set_tech_level(TechConstants.T_IS_TW_NON_BOX)
+            elif rules_level == 3:
+                mech.set_tech_level(TechConstants.T_IS_ADVANCED)
+            elif rules_level == 4:
+                mech.set_tech_level(TechConstants.T_IS_EXPERIMENTAL)
+            elif rules_level == 5:
+                mech.set_tech_level(TechConstants.T_IS_UNOFFICIAL)
+            else:
+                raise Exception(f"Unsupported tech level: {rules_level}")
+            mech.set_mixed_tech(True)
+        elif tech_base.lower() == "mixed (clan chassis)":
+            if rules_level == 2:
+                mech.set_tech_level(TechConstants.T_CLAN_TW)
+            elif rules_level == 3:
+                mech.set_tech_level(TechConstants.T_CLAN_ADVANCED)
+            elif rules_level == 4:
+                mech.set_tech_level(TechConstants.T_CLAN_EXPERIMENTAL)
+            elif rules_level == 5:
+                mech.set_tech_level(TechConstants.T_CLAN_UNOFFICIAL)
+            else:
+                raise Exception(f"Unsupported tech level: {rules_level}")
+            mech.set_mixed_tech(True)
+        elif tech_base.lower() == "mixed":
+            raise Exception('Unsupported tech base: "Mixed" is no longer allowed by itself. You must specify "Mixed (IS Chassis)" or "Mixed (Clan Chassis)".')
+        else:
+            raise Exception(f"Unsupported tech base: {tech_base}")
