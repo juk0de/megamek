@@ -742,7 +742,7 @@ class MtfFile:
             if isinstance(mech, LandAirMech):
                 mech.auto_set_cap_armor()
                 mech.auto_set_fatal_thresh()
-                fuel_tank_count = sum(1 for e in mech.get_equipment() if e.is(EquipmentTypeLookup.LAM_FUEL_TANK))
+                fuel_tank_count = sum(1 for e in mech.get_equipment() if e == EquipmentTypeLookup.LAM_FUEL_TANK)
                 mech.set_fuel(80 * (1 + fuel_tank_count))
 
             if laser_sinks:
