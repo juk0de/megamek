@@ -174,9 +174,16 @@ class MtfFile:
             elif not line.startswith(self.COMMENT):
                 return line.strip()
 
-    # Placeholder methods for the rest of the class
     def is_title_line(self, line):
-        pass
+        line_lower = line.lower()
+        if line_lower.startswith(self.CHASSIS):
+            self.chassis = line[len(self.CHASSIS):]
+            return True
+        elif line_lower.startswith(self.MODEL):
+            self.model = line[len(self.MODEL):]
+            return True
+        else:
+            return False
 
     def is_valid_location(self, line):
         pass
