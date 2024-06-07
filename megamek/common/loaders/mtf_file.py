@@ -869,3 +869,24 @@ class MtfFile:
                 raise Exception(ex)
         else:
             mech.add_failed_equipment(name)
+    def compact_criticals(self, mech):
+        for loc in range(mech.locations()):
+            self.compact_criticals_for_location(mech, loc)
+
+    def compact_criticals_for_location(self, mech, loc):
+        if loc == Mech.LOC_HEAD:
+            return
+
+        first_empty = -1
+        for slot in range(mech.get_number_of_criticals(loc)):
+            if self.crit_data[loc][slot] is None:
+                self.crit_data[loc][slot] = self.EMPTY
+
+            if self.crit_data[loc][slot] == self.EMPTY and first_empty == -1:
+                first_empty = slot
+
+            if first_empty != -1 and self.crit_data[loc][slot] != self.EMPTY:
+                self.crit_data[loc][first_empty] = self.crit_data[loc][slot]
+                self.crit_data[loc][slot] = self.EMPTY
+                slot = first_empty
+                first_empty = -1
