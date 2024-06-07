@@ -186,7 +186,12 @@ class MtfFile:
             return False
 
     def is_valid_location(self, line):
-        pass
+        valid_locations = [
+            "Left Arm:", "Right Arm:", "Left Leg:", "Right Leg:", "Center Leg:",
+            "Front Left Leg:", "Front Right Leg:", "Rear Left Leg:", "Rear Right Leg:",
+            "Left Torso:", "Right Torso:", "Center Torso:", "Head:"
+        ]
+        return line in valid_locations
 
     def get_location(self, line):
         pass
