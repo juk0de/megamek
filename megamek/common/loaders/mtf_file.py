@@ -194,7 +194,24 @@ class MtfFile:
         return line in valid_locations
 
     def get_location(self, line):
-        pass
+        if line.lower() == "left arm:" or line.lower() == "front left leg:":
+            return 0  # Mech.LOC_LARM
+        elif line.lower() == "right arm:" or line.lower() == "front right leg:":
+            return 1  # Mech.LOC_RARM
+        elif line.lower() == "left leg:" or line.lower() == "rear left leg:":
+            return 6  # Mech.LOC_LLEG
+        elif line.lower() == "right leg:" or line.lower() == "rear right leg:":
+            return 7  # Mech.LOC_RLEG
+        elif line.lower() == "center leg:":
+            return 8  # Mech.LOC_CLEG
+        elif line.lower() == "left torso:":
+            return 2  # Mech.LOC_LT
+        elif line.lower() == "right torso:":
+            return 3  # Mech.LOC_RT
+        elif line.lower() == "center torso:":
+            return 4  # Mech.LOC_CT
+        else:
+            return 5  # Mech.LOC_HEAD
 
     def is_processed_component(self, line):
         pass
