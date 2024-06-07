@@ -87,3 +87,4 @@ megamek/userdata/**
 /megamek/Entity Issues.txt
 /megamek/apidocs/
 #End MegaMek Other Outputs
+.aider*
