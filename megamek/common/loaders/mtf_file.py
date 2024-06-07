@@ -1,4 +1,5 @@
 import logging
+from megamek.common import TechConstants
 
 class MtfFile:
     COMMENT = "#"
