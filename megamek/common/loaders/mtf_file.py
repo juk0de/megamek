@@ -334,5 +334,46 @@ class MtfFile:
             return int(line[len(self.WEAPONS):])
         return -1
 
-    def get_armor_location(self, line):
-        pass
+    def get_armor_location(self, location):
+        loc = -1
+        rear = False
+        location_name = location.lower()
+        if location_name.startswith("la armor:") or location_name.startswith("fll armor:"):
+            loc = 0  # Mech.LOC_LARM
+        elif location_name.startswith("ra armor:") or location_name.startswith("frl armor:"):
+            loc = 1  # Mech.LOC_RARM
+        elif location_name.startswith("lt armor:"):
+            loc = 2  # Mech.LOC_LT
+        elif location_name.startswith("rt armor:"):
+            loc = 3  # Mech.LOC_RT
+        elif location_name.startswith("ct armor:"):
+            loc = 4  # Mech.LOC_CT
+        elif location_name.startswith("hd armor:"):
+            loc = 5  # Mech.LOC_HEAD
+        elif location_name.startswith("ll armor:") or location_name.startswith("rll armor:"):
+            loc = 6  # Mech.LOC_LLEG
+        elif location_name.startswith("rl armor:") or location_name.startswith("rrl armor:"):
+            loc = 7  # Mech.LOC_RLEG
+        elif location_name.startswith("rtl armor:"):
+            loc = 2  # Mech.LOC_LT
+            rear = True
+        elif location_name.startswith("rtr armor:"):
+            loc = 3  # Mech.LOC_RT
+            rear = True
+        elif location_name.startswith("rtc armor:"):
+            loc = 4  # Mech.LOC_CT
+            rear = True
+        elif location_name.startswith("cl armor:"):
+            loc = 8  # Mech.LOC_CLEG
+
+        if not rear:
+            for pos in range(len(self.location_order)):
+                if self.location_order[pos] == loc:
+                    loc = pos
+                    break
+        else:
+            for pos in range(len(self.rear_location_order)):
+                if self.rear_location_order[pos] == loc:
+                    loc = pos + len(self.location_order)
+                    break
+        return loc

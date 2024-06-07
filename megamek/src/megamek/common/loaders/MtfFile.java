@@ -1020,57 +1020,6 @@ public class MtfFile implements IMechLoader {
         return Mech.LOC_HEAD;
     }
 
-    private int getArmorLocation(String location) {
-
-        int loc = -1;
-        boolean rear = false;
-        String locationName = location.toLowerCase();
-        if (locationName.startsWith("la armor:") || locationName.startsWith("fll armor:")) {
-            loc = Mech.LOC_LARM;
-        } else if (locationName.startsWith("ra armor:") || locationName.startsWith("frl armor:")) {
-            loc = Mech.LOC_RARM;
-        } else if (locationName.startsWith("lt armor:")) {
-            loc = Mech.LOC_LT;
-        } else if (locationName.startsWith("rt armor:")) {
-            loc = Mech.LOC_RT;
-        } else if (locationName.startsWith("ct armor:")) {
-            loc = Mech.LOC_CT;
-        } else if (locationName.startsWith("hd armor:")) {
-            loc = Mech.LOC_HEAD;
-        } else if (locationName.startsWith("ll armor:") || locationName.startsWith("rll armor:")) {
-            loc = Mech.LOC_LLEG;
-        } else if (locationName.startsWith("rl armor:") || locationName.startsWith("rrl armor:")) {
-            loc = Mech.LOC_RLEG;
-        } else if (locationName.startsWith("rtl armor:")) {
-            loc = Mech.LOC_LT;
-            rear = true;
-        } else if (locationName.startsWith("rtr armor:")) {
-            loc = Mech.LOC_RT;
-            rear = true;
-        } else if (locationName.startsWith("rtc armor:")) {
-            loc = Mech.LOC_CT;
-            rear = true;
-        } else if (locationName.startsWith("cl armor:")) {
-            loc = Mech.LOC_CLEG;
-        }
-
-        if (!rear) {
-            for (int pos = 0; pos < locationOrder.length; pos++) {
-                if (locationOrder[pos] == loc) {
-                    loc = pos;
-                    break;
-                }
-            }
-        } else {
-            for (int pos = 0; pos < rearLocationOrder.length; pos++) {
-                if (rearLocationOrder[pos] == loc) {
-                    loc = pos + locationOrder.length;
-                    break;
-                }
-            }
-        }
-        return loc;
-    }
 
     private boolean isValidLocation(String location) {
         return location.equalsIgnoreCase("Left Arm:")
