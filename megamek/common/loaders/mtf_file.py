@@ -214,7 +214,120 @@ class MtfFile:
             return 5  # Mech.LOC_HEAD
 
     def is_processed_component(self, line):
-        pass
+        line_lower = line.lower()
+        if line_lower.startswith(self.COCKPIT):
+            self.cockpit_type = line
+            return True
+        elif line_lower.startswith(self.GYRO):
+            self.gyro_type = line
+            return True
+        elif line_lower.startswith(self.MOTIVE):
+            self.motive_type = line
+            return True
+        elif line_lower.startswith(self.EJECTION):
+            self.ejection_type = line
+            return True
+        elif line_lower.startswith(self.MASS):
+            self.tonnage = line
+            return True
+        elif line_lower.startswith(self.ENGINE):
+            self.engine = line
+            return True
+        elif line_lower.startswith(self.STRUCTURE):
+            self.internal_type = line
+            return True
+        elif line_lower.startswith(self.MYOMER):
+            return True
+        elif line_lower.startswith(self.LAM):
+            self.lam_type = line
+            return True
+        elif line_lower.startswith(self.CONFIG):
+            self.chassis_config = line
+            return True
+        elif line_lower.startswith(self.TECH_BASE):
+            self.tech_base = line
+            return True
+        elif line_lower.startswith(self.ERA):
+            self.tech_year = line
+            return True
+        elif line_lower.startswith(self.SOURCE):
+            self.source = line
+            return True
+        elif line_lower.startswith(self.RULES_LEVEL):
+            self.rules_level = line
+            return True
+        elif line_lower.startswith(self.HEAT_SINKS):
+            self.heat_sinks = line
+            return True
+        elif line_lower.startswith(self.BASE_CHASSIS_HEAT_SINKS):
+            self.base_chassie_heat_sinks = line
+            return True
+        elif line_lower.startswith(self.WALK_MP):
+            return True
+        elif line_lower.startswith(self.JUMP_MP):
+            self.jump_mp = line
+            return True
+        elif line_lower.startswith(self.ARMOR):
+            self.armor_type = line
+            return True
+        elif line_lower.startswith(self.NO_CRIT):
+            self.no_crit_equipment.append(line[len(self.NO_CRIT):])
+            return True
+        elif line_lower.startswith(self.OVERVIEW):
+            self.overview = line[len(self.OVERVIEW):]
+            return True
+        elif line_lower.startswith(self.CLAN_CHASSIS_NAME):
+            self.clan_chassis_name = line[len(self.CLAN_CHASSIS_NAME):]
+            return True
+        elif line_lower.startswith(self.CAPABILITIES):
+            self.capabilities = line[len(self.CAPABILITIES):]
+            return True
+        elif line_lower.startswith(self.DEPLOYMENT):
+            self.deployment = line[len(self.DEPLOYMENT):]
+            return True
+        elif line_lower.startswith(self.HISTORY):
+            self.history = line[len(self.HISTORY):]
+            return True
+        elif line_lower.startswith(self.MANUFACTURER):
+            self.manufacturer = line[len(self.MANUFACTURER):]
+            return True
+        elif line_lower.startswith(self.PRIMARY_FACTORY):
+            self.primary_factory = line[len(self.PRIMARY_FACTORY):]
+            return True
+        elif line_lower.startswith(self.SYSTEM_MANUFACTURER):
+            fields = line.split(":")
+            if len(fields) > 2:
+                system = fields[1].strip()
+                self.system_manufacturers[system] = fields[2].strip()
+            return True
+        elif line_lower.startswith(self.SYSTEM_MODEL):
+            fields = line.split(":")
+            if len(fields) > 2:
+                system = fields[1].strip()
+                self.system_models[system] = fields[2].strip()
+            return True
+        elif line_lower.startswith(self.NOTES):
+            self.notes = line[len(self.NOTES):]
+            return True
+        elif line_lower.startswith(self.BV):
+            self.bv = int(line[len(self.BV):])
+            return True
+        elif line_lower.startswith(self.MUL_ID):
+            self.mul_id = int(line[len(self.MUL_ID):])
+            return True
+        elif line_lower.startswith(self.FLUFF_IMAGE):
+            self.fluff_image_encoded = line[len(self.FLUFF_IMAGE):]
+            return True
+        elif line_lower.startswith(self.ICON):
+            self.icon_encoded = line[len(self.ICON):]
+            return True
+        elif line_lower.startswith(self.QUIRK) or line_lower.startswith(self.WEAPON_QUIRK):
+            self.quirk_lines.append(line)
+            return True
+        elif line_lower.startswith(self.ROLE):
+            self.role = line[len(self.ROLE):]
+            return True
+        return False
 
     def weapons_list(self, line):
         pass
